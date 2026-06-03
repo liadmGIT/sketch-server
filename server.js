@@ -14,33 +14,92 @@ app.use((req, res, next) => {
   next();
 });
 
-const SKETCH_PROMPT = `Convert the provided image into a clean 2-color black-and-white circular line art illustration for a 3D printed coaster (90-100mm diameter).
+const SKETCH_PROMPT = `Redesign the uploaded photo into a clean 2-color black-and-white stencil portrait for a 3D printed circular coaster.
 
-VISUAL TRANSFORMATION GOAL:
-Redraw all visual elements as a refined line art portrait illustration — like a custom art print or high-quality vector portrait. This is an artistic style conversion, not a photo filter.
+CORE GOAL:
+Create a flat black-and-white circular coaster design that can later be converted into SVG and 3D printed in two filament colors:
+- white = base layer
+- black = raised layer
 
-OUTPUT FORMAT:
-- Perfect circle with thick solid black outer border
-- Plain white background inside the circle
-- Main subject centered inside, drawn with elegant black lines on white
-- No background — remove everything behind the main subject
+STYLE:
+Create a clean black-and-white vector stencil portrait, similar to a custom laser-cut, vinyl decal, linocut, or 3D printed coaster design.
 
-COLOR RULES — STRICT:
-- Pure black and pure white ONLY
-- No gray, no gradients, no shadows, no textures
-- No photographic lighting effects
-- No halftone, no threshold filter, no messy noise
+Use ONLY:
+- pure black
+- pure white
 
-LINE ART RULES:
-- Use clean, elegant thin-to-medium lines — NOT filled black silhouettes
-- Faces and skin: mostly white with minimal defining lines (eyes, nose, lips, jaw outline only)
-- Hair: flowing lines showing direction and volume — NOT a solid black mass
-- Fur/texture: fine parallel linework showing depth — NOT filled black blobs
-- Use white space generously — black lines define form, white space fills the rest
-- Lines must be connected and printable at 90mm (no hair-thin isolated strokes)
+Never use:
+- gray
+- gradients
+- texture
+- soft shadows
+- photographic lighting
+- realistic skin shading
+- halftone
+- messy threshold effects
+- random black patches caused by shadows
+- tiny fragile details
 
-STYLE REFERENCE:
-The result should look like a professional custom portrait line art print — detailed, elegant, and recognizable — similar to high-end custom pet/portrait illustration art sold on Etsy.`;
+IMPORTANT:
+Do NOT apply a black-and-white photo filter.
+Do NOT use thresholding.
+Do NOT preserve photographic shadows.
+Do NOT create random black patches from lighting.
+Instead, redraw the subjects as a simple clean graphic icon based on the uploaded photo.
+
+COMPOSITION:
+The final image must be a perfect circular coaster design.
+Add a thick solid black circular outer border.
+Inside the circle, use a plain white background.
+Place the simplified subjects inside the circle from chest/shoulders upward.
+Remove the room background completely.
+
+WHAT TO PRESERVE FROM THE PHOTO:
+Keep each subject recognizable by preserving:
+- overall head shape
+- hairstyle silhouette
+- beard and mustache shape, if present
+- eyebrows
+- simple eye shapes
+- nose bridge or nostril suggestion
+- mouth line
+- neck
+- basic shirt or shoulders shape
+
+FACE SIMPLIFICATION RULES:
+Use large clean black shapes only.
+The hair should be one bold connected black silhouette with a few simple white cutouts only if needed.
+The beard and mustache should be one connected black shape, not many tiny hairs.
+The eyes should be simplified into clean bold shapes.
+Use small white negative-space highlights only if they remain printable.
+The nose should be minimal: 1–3 simple black shapes, not realistic shading.
+The mouth should be a simple clean black line or shape.
+The shirt should be a simple outline or solid shape with no fabric texture.
+
+3D PRINT DESIGN RULES:
+Design for a 90–100 mm coaster.
+All black areas should be bold and mostly connected.
+Avoid small isolated black islands.
+Avoid thin fragile lines.
+Avoid tiny white gaps.
+Avoid overly detailed facial features.
+Every detail must be large enough to survive 3D printing.
+Use fewer shapes.
+Use smooth curves.
+Prioritize clean readable design over exact realism.
+
+OUTPUT REQUIREMENTS:
+Create a flat circular black-and-white vector-style image with:
+1. thick black circular border
+2. white circular background
+3. simplified black portrait shapes
+4. white negative-space facial details
+5. no raster texture
+6. no gray
+7. no gradients
+8. no messy background
+
+The result should look like a professional custom portrait icon, not like a damaged photocopy.`;
 
 // ─── helper: fast preview via Responses API (gpt-image-1, quality low) ──────
 
