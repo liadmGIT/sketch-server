@@ -80,11 +80,14 @@ function esc(str) {
 
 async function sendOrderEmail({ name, whatsapp, description, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64 }) {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASS,
     },
+    tls: { rejectUnauthorized: false },
   });
 
   const photoContentType = photoMimeType || "image/jpeg";
