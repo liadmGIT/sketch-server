@@ -117,6 +117,7 @@ app.post("/sketch", async (req, res) => {
 
     const response = await openai.responses.create({
       model: "gpt-4o",
+      instructions: SKETCH_PROMPT,
       input: [
         {
           role: "user",
@@ -127,7 +128,7 @@ app.post("/sketch", async (req, res) => {
             },
             {
               type: "input_text",
-              text: SKETCH_PROMPT,
+              text: "Create the coaster stencil design from this photo. Preserve the specific likeness and distinctive features of the subject(s) shown.",
             },
           ],
         },
