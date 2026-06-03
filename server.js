@@ -13,93 +13,33 @@ app.use((req, res, next) => {
   next();
 });
 
-const SKETCH_PROMPT = `You are a specialized image-generation assistant for creating 3D-printable portrait coaster designs.
-Your job is to turn the uploaded portrait photo into a clean 2-color black-and-white stencil portrait suitable for 3D printed coasters.
+const SKETCH_PROMPT = `Convert the provided image into a clean 2-color black-and-white circular stencil design for a 3D printed coaster (90-100mm diameter).
 
-CORE GOAL:
-Create a flat black-and-white circular coaster design that can later be converted into SVG and 3D printed in two filament colors:
-- white = base layer
-- black = raised layer
+VISUAL TRANSFORMATION GOAL:
+Redraw all visual elements as a simplified flat graphic — like a vinyl decal, linocut print, or laser-cut stencil. This is an artistic style conversion, not a photo filter.
 
-STYLE:
-Create a clean black-and-white vector stencil portrait, similar to a custom laser-cut, vinyl decal, linocut, or 3D printed coaster design.
+OUTPUT FORMAT:
+- Perfect circle with thick solid black outer border
+- Plain white background inside the circle
+- Main subject centered inside, simplified into bold black shapes with white negative space
+- No background — remove everything behind the main subject
 
-Use ONLY:
-- pure black
-- pure white
+COLOR RULES — STRICT:
+- Pure black and pure white ONLY
+- No gray, no gradients, no shadows, no textures
+- No photographic lighting effects
+- No halftone, no threshold filter, no messy noise
 
-Never use:
-- gray
-- gradients
-- texture
-- soft shadows
-- photographic lighting
-- realistic skin shading
-- halftone
-- messy threshold effects
-- random black patches caused by shadows
-- tiny fragile details
+SHAPE RULES:
+- Use large, bold, connected black shapes
+- Simplify all details into clean silhouettes
+- White areas = gaps/highlights within black shapes
+- Avoid small isolated black islands
+- Avoid thin fragile lines (must survive 3D printing)
+- Avoid tiny details — everything must be printable at 90mm
 
-IMPORTANT:
-Do NOT apply a black-and-white photo filter.
-Do NOT use thresholding.
-Do NOT preserve photographic shadows.
-Do NOT create random black patches from lighting.
-Instead, redraw the portrait as a simple clean graphic icon based on the uploaded photo.
-
-COMPOSITION:
-The final image must be a perfect circular coaster design.
-Add a thick solid black circular outer border.
-Inside the circle, use a plain white background.
-Place the simplified portrait inside the circle from chest/shoulders upward.
-Remove the room background completely.
-
-WHAT TO PRESERVE FROM THE PHOTO:
-Keep the subject recognizable by preserving:
-- overall head shape
-- hairstyle silhouette
-- beard and mustache shape, if present
-- eyebrows
-- simple eye shapes
-- nose bridge or nostril suggestion
-- mouth line
-- neck
-- basic shirt or shoulders shape
-
-FACE SIMPLIFICATION RULES:
-Use large clean black shapes only.
-The hair should be one bold connected black silhouette with a few simple white cutouts only if needed.
-The beard and mustache should be one connected black shape, not many tiny hairs.
-The eyes should be simplified into clean bold shapes.
-Use small white negative-space highlights only if they remain printable.
-The nose should be minimal: 1-3 simple black shapes, not realistic shading.
-The mouth should be a simple clean black line or shape.
-The shirt should be a simple outline or solid shape with no fabric texture.
-
-3D PRINT DESIGN RULES:
-Design for a 90-100 mm coaster.
-All black areas should be bold and mostly connected.
-Avoid small isolated black islands.
-Avoid thin fragile lines.
-Avoid tiny white gaps.
-Avoid overly detailed facial features.
-Every detail must be large enough to survive 3D printing.
-Use fewer shapes.
-Use smooth curves.
-Prioritize clean readable design over exact realism.
-
-OUTPUT REQUIREMENTS:
-Generate a flat circular black-and-white vector-style image with:
-1. thick black circular border
-2. white circular background
-3. simplified black portrait shapes
-4. white negative-space facial details
-5. no raster texture
-6. no gray
-7. no gradients
-8. no messy background
-
-The result should look like a professional custom portrait icon, not like a damaged photocopy.`;
+STYLE REFERENCE:
+The result should look like a professional custom graphic icon — clean, bold, recognizable — not like a damaged photocopy or a simple B&W photo conversion.`;
 
 app.post("/sketch", async (req, res) => {
   console.log("Sketch request received, image size:", req.body?.imageBase64?.length ?? 0);
@@ -119,10 +59,6 @@ app.post("/sketch", async (req, res) => {
       model: "gpt-4o",
       input: [
         {
-          role: "system",
-          content: SKETCH_PROMPT,
-        },
-        {
           role: "user",
           content: [
             {
@@ -131,7 +67,7 @@ app.post("/sketch", async (req, res) => {
             },
             {
               type: "input_text",
-              text: "Create the coaster stencil from this photo.",
+              text: SKETCH_PROMPT,
             },
           ],
         },
