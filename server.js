@@ -14,15 +14,15 @@ app.use((req, res, next) => {
   next();
 });
 
-const SKETCH_PROMPT = `Convert the provided image into a clean 2-color black-and-white circular stencil design for a 3D printed coaster (90-100mm diameter).
+const SKETCH_PROMPT = `Convert the provided image into a clean 2-color black-and-white circular line art illustration for a 3D printed coaster (90-100mm diameter).
 
 VISUAL TRANSFORMATION GOAL:
-Redraw all visual elements as a simplified flat graphic — like a vinyl decal, linocut print, or laser-cut stencil. This is an artistic style conversion, not a photo filter.
+Redraw all visual elements as a refined line art portrait illustration — like a custom art print or high-quality vector portrait. This is an artistic style conversion, not a photo filter.
 
 OUTPUT FORMAT:
 - Perfect circle with thick solid black outer border
 - Plain white background inside the circle
-- Main subject centered inside, simplified into bold black shapes with white negative space
+- Main subject centered inside, drawn with elegant black lines on white
 - No background — remove everything behind the main subject
 
 COLOR RULES — STRICT:
@@ -31,16 +31,16 @@ COLOR RULES — STRICT:
 - No photographic lighting effects
 - No halftone, no threshold filter, no messy noise
 
-SHAPE RULES:
-- Use large, bold, connected black shapes
-- Simplify all details into clean silhouettes
-- White areas = gaps/highlights within black shapes
-- Avoid small isolated black islands
-- Avoid thin fragile lines (must survive 3D printing)
-- Avoid tiny details — everything must be printable at 90mm
+LINE ART RULES:
+- Use clean, elegant thin-to-medium lines — NOT filled black silhouettes
+- Faces and skin: mostly white with minimal defining lines (eyes, nose, lips, jaw outline only)
+- Hair: flowing lines showing direction and volume — NOT a solid black mass
+- Fur/texture: fine parallel linework showing depth — NOT filled black blobs
+- Use white space generously — black lines define form, white space fills the rest
+- Lines must be connected and printable at 90mm (no hair-thin isolated strokes)
 
 STYLE REFERENCE:
-The result should look like a professional custom graphic icon — clean, bold, recognizable — not like a damaged photocopy or a simple B&W photo conversion.`;
+The result should look like a professional custom portrait line art print — detailed, elegant, and recognizable — similar to high-end custom pet/portrait illustration art sold on Etsy.`;
 
 // ─── helper: fast preview via Responses API (gpt-image-1, quality low) ──────
 
