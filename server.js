@@ -119,6 +119,10 @@ app.post("/sketch", async (req, res) => {
       model: "gpt-4o",
       input: [
         {
+          role: "system",
+          content: SKETCH_PROMPT,
+        },
+        {
           role: "user",
           content: [
             {
@@ -127,7 +131,7 @@ app.post("/sketch", async (req, res) => {
             },
             {
               type: "input_text",
-              text: SKETCH_PROMPT,
+              text: "Create the coaster stencil from this photo.",
             },
           ],
         },
