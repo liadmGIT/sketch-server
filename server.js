@@ -102,10 +102,15 @@ Generate a flat circular black-and-white vector-style image with:
 The result should look like a professional custom portrait icon, not like a damaged photocopy.`;
 
 app.post("/sketch", async (req, res) => {
+  console.log("Sketch request received, image size:", req.body?.imageBase64?.length ?? 0);
   const { imageBase64, mimeType } = req.body;
 
   if (!imageBase64) return res.status(400).json({ error: "No image provided" });
-  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: "API key not configured" });
+  if (!process.env.OPENAI_API_KEY) {
+    console.error("OPENAI_API_KEY missing!");
+    return res.status(500).json({ error: "API key not configured" });
+  }
+  console.log("Calling OpenAI Responses API...");
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
