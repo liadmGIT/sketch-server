@@ -1,6 +1,6 @@
 const express = require("express");
 const { OpenAI } = require("openai");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
@@ -79,30 +79,21 @@ function esc(str) {
 }
 
 async function sendOrderEmail({ name, whatsapp, description, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64 }) {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASS,
-    },
-    tls: { rejectUnauthorized: false },
-  });
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   const photoContentType = photoMimeType || "image/jpeg";
   const photoExt = photoContentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
 
   const attachments = [];
   if (photoBase64) {
-    attachments.push({ filename: `photo.${photoExt}`, content: photoBase64, encoding: "base64", contentType: photoContentType });
+    attachments.push({ filename: `photo.${photoExt}`, content: photoBase64 });
   }
   if (sketchBase64) {
-    attachments.push({ filename: "sketch.png", content: sketchBase64, encoding: "base64", contentType: "image/png" });
+    attachments.push({ filename: "sketch.png", content: sketchBase64 });
   }
 
-  await transporter.sendMail({
-    from: `"תחתיות אישיות" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: "תחתיות אישיות <onboarding@resend.dev>",
     to: process.env.GMAIL_USER,
     subject: `🎨 הזמנה חדשה — ${esc(name)} | ${esc(quantity)}`,
     html: `
@@ -172,7 +163,7 @@ app.post("/order", async (req, res) => {
   const { name, whatsapp, description, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchPreviewBase64 } = req.body;
 
   if (!name || !whatsapp) return res.status(400).json({ error: "Missing required fields" });
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASS) return res.status(500).json({ error: "Email not configured" });
+  if (!process.env.GMAIL_USER || !process.env.RESEND_API_KEY) return res.status(500).json({ error: "Email not configured" });
 
   console.log(`Order received: ${name} | ${quantity}`);
 
