@@ -1,5 +1,5 @@
 const express = require("express");
-const { OpenAI } = require("openai");
+const { OpenAI, toFile } = require("openai");
 const { Resend } = require("resend");
 
 const app = express();
@@ -42,9 +42,9 @@ SHAPE RULES:
 STYLE REFERENCE:
 The result should look like a professional custom graphic icon — clean, bold, recognizable — not like a damaged photocopy or a simple B&W photo conversion.`;
 
-// ─── helper: generate sketch via Responses API ───────────────────────────────
+// ─── helper: fast preview via Responses API (gpt-image-1, quality low) ──────
 
-async function generateSketch(openai, imageBase64, mimeType, quality = "low") {
+async function generatePreviewSketch(openai, imageBase64, mimeType) {
   const response = await openai.responses.create({
     model: "gpt-4o",
     input: [
@@ -62,11 +62,31 @@ async function generateSketch(openai, imageBase64, mimeType, quality = "low") {
         ],
       },
     ],
-    tools: [{ type: "image_generation", quality, size: "1024x1024" }],
+    tools: [{ type: "image_generation", quality: "low", size: "1024x1024" }],
   });
 
   const imageOutput = response.output.find((item) => item.type === "image_generation_call");
   return imageOutput?.result ?? null;
+}
+
+// ─── helper: high quality via gpt-image-2 img2img ────────────────────────────
+
+async function generateHighQualitySketch(openai, imageBase64, mimeType) {
+  const imageBuffer = Buffer.from(imageBase64, "base64");
+  const imageFile = await toFile(imageBuffer, "photo.jpg", {
+    type: mimeType || "image/jpeg",
+  });
+
+  const result = await openai.images.edit({
+    model: "gpt-image-2",
+    image: imageFile,
+    prompt: SKETCH_PROMPT,
+    n: 1,
+    size: "1024x1024",
+    quality: "high",
+  });
+
+  return result.data?.[0]?.b64_json ?? null;
 }
 
 // ─── helper: send email ───────────────────────────────────────────────────────
@@ -146,7 +166,7 @@ app.post("/sketch", async (req, res) => {
 
   try {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const sketchBase64 = await generateSketch(openai, imageBase64, mimeType, "low");
+    const sketchBase64 = await generatePreviewSketch(openai, imageBase64, mimeType);
 
     if (!sketchBase64) return res.status(422).json({ error: "No image returned from model" });
 
@@ -178,7 +198,7 @@ app.post("/order", async (req, res) => {
       try {
         console.log(`Generating high quality sketch for: ${name}...`);
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        const highQuality = await generateSketch(openai, photoBase64, photoMimeType, "high");
+        const highQuality = await generateHighQualitySketch(openai, photoBase64, photoMimeType);
         if (highQuality) {
           finalSketch = highQuality;
           console.log("High quality sketch ready.");
