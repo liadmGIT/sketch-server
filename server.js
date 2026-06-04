@@ -52,12 +52,13 @@ The final image must be a perfect circular coaster design.
 Add a thick solid black circular outer border.
 Inside the circle, use a plain white background.
 Place the simplified subjects inside the circle from chest/shoulders upward.
+Include arms and hands if they are visible in the photo — do not cut them off.
 Remove the room background completely.
 
 WHAT TO PRESERVE FROM THE PHOTO:
 Keep each subject recognizable by preserving:
 - overall head shape
-- hairstyle silhouette
+- hairstyle silhouette AND flowing hair strand details
 - beard and mustache shape, if present
 - eyebrows
 - simple eye shapes
@@ -65,16 +66,18 @@ Keep each subject recognizable by preserving:
 - mouth line
 - neck
 - basic shirt or shoulders shape
+- hands and arms if visible
 
 FACE SIMPLIFICATION RULES:
-Use large clean black shapes only.
-The hair should be one bold connected black silhouette with a few simple white cutouts only if needed.
-The beard and mustache should be one connected black shape, not many tiny hairs.
+Use large clean black shapes as the base.
+The hair should be a bold black silhouette with visible flowing strand lines drawn inside it — show hair direction and volume with clean curved lines, not just a flat black mass.
+The beard and mustache should be one connected black shape with a few simple line details to suggest texture.
 The eyes should be simplified into clean bold shapes.
 Use small white negative-space highlights only if they remain printable.
 The nose should be minimal: 1–3 simple black shapes, not realistic shading.
 The mouth should be a simple clean black line or shape.
 The shirt should be a simple outline or solid shape with no fabric texture.
+For animals: show fur texture using short parallel curved lines — do not fill the entire face as a flat black blob. Preserve recognizable facial features (eyes, nose, mouth, ear shapes).
 
 3D PRINT DESIGN RULES:
 Design for a 90–100 mm coaster.
