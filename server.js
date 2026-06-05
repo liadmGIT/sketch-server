@@ -252,6 +252,15 @@ function esc(str) {
     .replace(/>/g, "&gt;");
 }
 
+// Convert Israeli phone number to wa.me link
+// handles: 050-1234567 / 0501234567 / +9725... / 9725...
+function whatsappLink(raw) {
+  let digits = String(raw ?? "").replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = "972" + digits.slice(1);
+  const url = `https://wa.me/${digits}`;
+  return `<a href="${url}" style="color:#25D366; font-weight:600; text-decoration:none;">${esc(raw)} 💬</a>`;
+}
+
 async function sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64 }) {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -280,7 +289,7 @@ async function sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, 
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px; font-weight: bold;">וואטסאפ</td>
-            <td style="padding: 8px;">${esc(whatsapp)}</td>
+            <td style="padding: 8px;">${whatsappLink(whatsapp)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px; font-weight: bold;">כמות</td>
@@ -353,7 +362,7 @@ async function sendMultiOrderEmail({ name, whatsapp, quantity, notes, coasters }
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px; font-weight: bold;">וואטסאפ</td>
-            <td style="padding: 8px;">${esc(whatsapp)}</td>
+            <td style="padding: 8px;">${whatsappLink(whatsapp)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px; font-weight: bold;">כמות</td>
