@@ -332,7 +332,7 @@ async function sendMultiOrderEmail({ name, whatsapp, quantity, notes, coasters }
 
   const rowsHtml = coasters.map((c, i) => `
     <tr style="border-bottom: 1px solid #eee;">
-      <td style="padding: 10px; font-weight: bold; color: #7A5A30; width: 70px;">תחתית ${i + 1}</td>
+      <td style="padding: 10px; font-weight: bold; color: #7A5A30; width: 90px;">עיצוב ${c.index || i + 1}<br/><span style="font-size:0.85em; color:#C4965A;">×${c.count || 1} תחתיות</span></td>
       <td style="padding: 10px; text-align: center;">
         ${c.photoBase64
           ? `<img src="data:image/jpeg;base64,${c.photoBase64}"
@@ -473,7 +473,8 @@ app.post("/order", orderLimiter, async (req, res) => {
       }
 
       try {
-        const multiNotes = `${notes || ""}${notes ? " | " : ""}${coasters.length} תמונות שונות`.trim();
+        const breakdown  = coasters.map((c, i) => `עיצוב ${i + 1}: ×${c.count || 1}`).join(", ");
+        const multiNotes = `${notes || ""}${notes ? " | " : ""}${coasters.length} עיצובים (${breakdown})`.trim();
         await writeToSheet({ name, whatsapp, quantity, notes: multiNotes });
       } catch (err) {
         console.error("writeToSheet unhandled:", err?.message);
