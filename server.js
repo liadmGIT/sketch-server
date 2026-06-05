@@ -73,7 +73,8 @@ Include arms and hands if they are visible in the photo — do not cut them off.
 BACKGROUND RULES:
 - The main subject always comes first — it must dominate the composition.
 - If the background is plain, neutral, or unimportant (floor, wall, sky, grass, blurred scenery) → replace with pure white. Do not invent decorative elements.
-- If the background contains clearly visible, meaningful elements (e.g. flowers the subject is surrounded by, other people who are part of the scene, a recognizable object) → simplify and include them sparsely. Maximum 3–5 simplified shapes. Leave plenty of white space. Never let background elements compete with the main subject.
+- If there are multiple subjects (people or animals that are clearly part of the scene) → include ALL of them, simplified.
+- If the background contains decorative or environmental elements (flowers, plants, objects) that are clearly visible and meaningful → include up to 3–5 simplified shapes sparsely. Leave plenty of white space. Never let background elements compete with the subjects.
 - NEVER invent or add anything that does not exist in the original photo.
 
 WHAT TO PRESERVE FROM THE PHOTO:
