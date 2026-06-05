@@ -1,6 +1,23 @@
 const express = require("express");
 const { OpenAI, toFile } = require("openai");
 const { Resend } = require("resend");
+const rateLimit = require("express-rate-limit");
+
+const sketchLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // שעה
+  max: 3,
+  message: { error: "יותר מדי בקשות — נסה שוב בעוד שעה" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const orderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  message: { error: "יותר מדי הזמנות — נסה שוב בעוד שעה" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
@@ -219,7 +236,7 @@ async function sendOrderEmail({ name, whatsapp, description, quantity, notes, sk
 
 // ─── /sketch — תצוגה מקדימה מהירה (quality: low) ─────────────────────────────
 
-app.post("/sketch", async (req, res) => {
+app.post("/sketch", sketchLimiter, async (req, res) => {
   console.log("Preview request, image size:", req.body?.imageBase64?.length ?? 0);
   const { imageBase64, mimeType } = req.body;
 
@@ -241,7 +258,7 @@ app.post("/sketch", async (req, res) => {
 
 // ─── /order — קבלת הזמנה + סקיצה איכותית + מייל ברקע ───────────────────────
 
-app.post("/order", async (req, res) => {
+app.post("/order", orderLimiter, async (req, res) => {
   const { name, whatsapp, description, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchPreviewBase64 } = req.body;
 
   if (!name || !whatsapp) return res.status(400).json({ error: "Missing required fields" });
