@@ -182,10 +182,10 @@ async function writeToSheet({ name, whatsapp, quantity, notes }) {
           notes || "",       // E - הערות
           cost,              // F - עלות ייצור (₪)
           profit,            // G - רווח (₪)
-          "ממתין",           // H - סטטוס (מתעדכן אוטומטית ע"י Apps Script)
-          "לא",              // I - שולם?
-          "לא",              // J - סופק?
-          fmt(deadline),     // K - מסירה מקסימלית
+          "לא",              // H - שולם?
+          "לא",              // I - סופק?
+          fmt(deadline),     // J - מסירה מקסימלית
+          "ממתין",           // K - סטטוס (מתעדכן אוטומטית ע"י Apps Script)
         ]],
       },
     });
