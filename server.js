@@ -2,6 +2,7 @@ const express = require("express");
 const { OpenAI, toFile } = require("openai");
 const { Resend } = require("resend");
 const rateLimit = require("express-rate-limit");
+const { google } = require("googleapis");
 
 const sketchLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // שעה
@@ -125,6 +126,69 @@ Create a flat circular black-and-white vector-style image with:
 8. no messy background
 
 The result should look like a professional custom portrait icon, not like a damaged photocopy.`;
+
+// ─── helper: Google Sheets ────────────────────────────────────────────────────
+
+function parseOrder(quantityStr) {
+  if (quantityStr?.includes("זוג"))  return { qty: 2, price: 35 };
+  if (quantityStr?.includes("סט 4")) return { qty: 4, price: 60 };
+  if (quantityStr?.includes("סט 6")) return { qty: 6, price: 80 };
+  return { qty: 1, price: 20 };
+}
+
+function addBusinessDays(date, days) {
+  const d = new Date(date);
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay(); // 5=Fri, 6=Sat
+    if (day !== 5 && day !== 6) added++;
+  }
+  return d;
+}
+
+async function writeToSheet({ name, whatsapp, quantity, notes }) {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT || !process.env.GOOGLE_SHEETS_ID) return;
+  try {
+    const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheets = google.sheets({ version: "v4", auth });
+
+    const now = new Date();
+    const fmt = (d) => d.toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" });
+
+    const { qty, price } = parseOrder(quantity);
+    const cost    = qty * 3;
+    const profit  = price - cost;
+    const deadline = addBusinessDays(now, 2);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
+      range: "Sheet1!A:J",
+      valueInputOption: "USER_ENTERED",
+      resource: {
+        values: [[
+          fmt(now),          // תאריך הזמנה
+          name,              // שם
+          whatsapp,          // וואטסאפ
+          quantity,          // כמות
+          notes || "",       // הערות
+          cost,              // עלות ייצור (₪)
+          profit,            // רווח (₪)
+          fmt(deadline),     // מסירה מקסימלית
+          "",                // שולם?
+          "ממתין",           // סטטוס
+        ]],
+      },
+    });
+    console.log(`Sheet updated for: ${name}`);
+  } catch (err) {
+    console.error("Sheet write failed:", err?.message);
+  }
+}
 
 // ─── helper: fast preview via Responses API (gpt-image-1, quality low) ──────
 
@@ -298,6 +362,8 @@ app.post("/order", orderLimiter, async (req, res) => {
     } catch (err) {
       console.error("Email failed:", err?.message);
     }
+
+    await writeToSheet({ name, whatsapp, quantity, notes });
   })();
 });
 

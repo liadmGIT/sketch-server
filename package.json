@@ -8,6 +8,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "express-rate-limit": "^8.5.2",
+    "googleapis": "^173.0.0",
     "openai": "^4.98.0",
     "resend": "^4.0.0"
   }
