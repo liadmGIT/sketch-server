@@ -77,7 +77,7 @@ Use small white negative-space highlights only if they remain printable.
 The nose should be minimal: 1–3 simple black shapes, not realistic shading.
 The mouth should be a simple clean black line or shape.
 The shirt should be a simple outline or solid shape with no fabric texture.
-For animals: show fur texture using a LIMITED number of bold curved lines (10–20 strokes total, not hundreds of fine hairs) — suggest fur direction and volume without filling the face with tiny details. Every fur stroke must be thick enough to survive 3D printing at 90mm. Preserve recognizable facial features (eyes, nose, mouth, ear shapes).
+For animals: show fur texture using a LIMITED number of bold curved lines (5–15 strokes total, not hundreds of fine hairs) — suggest fur direction and volume without filling the face with tiny details. Every fur stroke must be thick enough to survive 3D printing at 90mm. Preserve recognizable facial features (eyes, nose, mouth, ear shapes).
 
 3D PRINT DESIGN RULES:
 Design for a 90–100 mm coaster.
