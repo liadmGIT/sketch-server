@@ -53,7 +53,7 @@ Add a thick solid black circular outer border.
 Inside the circle, use a plain white background.
 Place the simplified subjects inside the circle from chest/shoulders upward.
 Include arms and hands if they are visible in the photo — do not cut them off.
-REMOVE THE ENTIRE BACKGROUND — whether it is a room, outdoor field, grass, flowers, trees, sky, or any environment. Replace everything behind the subject with plain white. Do NOT add decorative elements (flowers, leaves, patterns) that were not the main subject. The inside of the circle must be white except for the subject itself.
+BACKGROUND RULES: Remove busy, cluttered backgrounds completely. If the background has meaningful elements (flowers, nature), keep only 3–6 simplified decorative shapes scattered sparsely — not a dense filled pattern. The background must have plenty of white space. Never fill the entire circle with background elements. The subject must dominate — background is secondary accent only.
 
 WHAT TO PRESERVE FROM THE PHOTO:
 Keep each subject recognizable by preserving:
