@@ -6,7 +6,7 @@ const { google } = require("googleapis");
 
 const sketchLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // שעה
-  max: 3,
+  max: 20, // raised from 3 — supports multi-image orders (up to 6 slots × 3 retries)
   message: { error: "יותר מדי בקשות — נסה שוב בעוד שעה" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -22,7 +22,7 @@ const orderLimiter = rateLimit({
 
 const app = express();
 app.set("trust proxy", 1);
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "30mb" })); // raised for multi-image orders (up to 6 photos + sketches)
 
 // CORS — allow only the Vercel frontend
 app.use((req, res, next) => {
@@ -305,6 +305,87 @@ async function sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, 
   });
 }
 
+// ─── helper: send multi-image order email ────────────────────────────────────
+
+async function sendMultiOrderEmail({ name, whatsapp, quantity, notes, coasters }) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const attachments = [];
+  coasters.forEach((c, i) => {
+    if (c.photoBase64) {
+      attachments.push({ filename: `coaster-${i + 1}-photo.jpg`, content: c.photoBase64 });
+    }
+    if (c.finalSketch) {
+      attachments.push({ filename: `coaster-${i + 1}-sketch.png`, content: c.finalSketch });
+    }
+  });
+
+  const rowsHtml = coasters.map((c, i) => `
+    <tr style="border-bottom: 1px solid #eee;">
+      <td style="padding: 10px; font-weight: bold; color: #7A5A30; width: 70px;">תחתית ${i + 1}</td>
+      <td style="padding: 10px; text-align: center;">
+        ${c.photoBase64
+          ? `<img src="data:image/jpeg;base64,${c.photoBase64}"
+               style="width:72px;height:72px;object-fit:cover;border-radius:6px;display:block;margin:auto;" />`
+          : '<span style="color:#999">—</span>'}
+      </td>
+      <td style="padding: 10px; text-align: center;">
+        ${c.finalSketch
+          ? `<img src="data:image/png;base64,${c.finalSketch}"
+               style="width:72px;height:72px;object-fit:cover;border-radius:6px;display:block;margin:auto;" />`
+          : `<span style="color:${c.status === "error" ? "#b03a2e" : "#999"}; font-size:0.85em;">
+               ${c.status === "error" ? "שגיאה — לייצר ידנית" : "לא נוצרה"}</span>`}
+      </td>
+    </tr>
+  `).join("");
+
+  await resend.emails.send({
+    from:    "תחתיות אישיות <onboarding@resend.dev>",
+    to:      process.env.GMAIL_USER,
+    subject: `🎨 הזמנה — ${esc(name)} | ${esc(quantity)} | ${coasters.length} תמונות שונות`,
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 540px;">
+        <h2 style="color: #1a1a1a; margin-bottom: 4px;">הזמנה חדשה — ${coasters.length} תמונות שונות 🎉</h2>
+        <table style="border-collapse: collapse; width: 100%; margin-bottom: 20px;">
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px; font-weight: bold; width: 110px;">שם</td>
+            <td style="padding: 8px;">${esc(name)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px; font-weight: bold;">וואטסאפ</td>
+            <td style="padding: 8px;">${esc(whatsapp)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px; font-weight: bold;">כמות</td>
+            <td style="padding: 8px;">${esc(quantity)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold;">הערות</td>
+            <td style="padding: 8px;">${esc(notes) || "—"}</td>
+          </tr>
+        </table>
+
+        <h3 style="margin-bottom: 10px; color: #1a1a1a;">תחתיות:</h3>
+        <table style="border-collapse: collapse; width: 100%;">
+          <thead>
+            <tr style="background: #f5f0e8; font-size: 0.82em; color: #7A5A30;">
+              <th style="padding: 8px; text-align: right;">#</th>
+              <th style="padding: 8px;">תמונה מקורית</th>
+              <th style="padding: 8px;">סקיצה</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+
+        <p style="margin-top: 16px; color: #888; font-size: 0.85em;">
+          📎 כל התמונות והסקיצות מצורפות כקבצים נפרדים.
+        </p>
+      </div>
+    `,
+    attachments,
+  });
+}
+
 // ─── /sketch — תצוגה מקדימה מהירה (quality: low) ─────────────────────────────
 
 app.post("/sketch", sketchLimiter, async (req, res) => {
@@ -330,46 +411,93 @@ app.post("/sketch", sketchLimiter, async (req, res) => {
 // ─── /order — קבלת הזמנה + סקיצה איכותית + מייל ברקע ───────────────────────
 
 app.post("/order", orderLimiter, async (req, res) => {
-  const { name, whatsapp, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchPreviewBase64 } = req.body;
+  const {
+    name, whatsapp, quantity, notes, sketch_status,
+    // single-image
+    photoBase64, photoMimeType, sketchPreviewBase64,
+    // multi-image
+    isMultiImage, coasters,
+  } = req.body;
 
   if (!name || !whatsapp) return res.status(400).json({ error: "Missing required fields" });
   if (!process.env.GMAIL_USER || !process.env.RESEND_API_KEY) return res.status(500).json({ error: "Email not configured" });
 
-  console.log(`Order received: ${name} | ${quantity}`);
+  console.log(`Order received: ${name} | ${quantity}${isMultiImage ? ` | ${coasters?.length} images` : ""}`);
 
   // מחזיר ללקוח מיידית
   res.status(200).json({ success: true });
 
-  // ברקע: מייצר סקיצה איכותית ושולח מייל
+  // ─── ברקע ─────────────────────────────────────────────────────────────────
   (async () => {
-    let finalSketch = sketchPreviewBase64; // fallback לתצוגה מקדימה
 
-    if (photoBase64 && process.env.OPENAI_API_KEY) {
-      try {
-        console.log(`Generating high quality sketch for: ${name}...`);
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        const highQuality = await generateHighQualitySketch(openai, photoBase64, photoMimeType);
-        if (highQuality) {
-          finalSketch = highQuality;
-          console.log("High quality sketch ready.");
+    if (isMultiImage && Array.isArray(coasters) && coasters.length > 0) {
+      // ── Multi-image order ──────────────────────────────────────────────────
+      const openai = process.env.OPENAI_API_KEY
+        ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+        : null;
+
+      // Generate HQ sketch for each coaster sequentially (avoids rate limits)
+      const coastersWithSketches = [];
+      for (let i = 0; i < coasters.length; i++) {
+        const c = coasters[i];
+        let finalSketch = c.sketchPreviewBase64; // fallback to low-quality preview
+
+        if (c.photoBase64 && openai) {
+          try {
+            console.log(`HQ sketch ${i + 1}/${coasters.length} for ${name}...`);
+            const hq = await generateHighQualitySketch(openai, c.photoBase64, c.photoMimeType || "image/jpeg");
+            if (hq) { finalSketch = hq; console.log(`  ✓ coaster ${i + 1} done`); }
+          } catch (err) {
+            console.error(`  ✗ HQ sketch ${i + 1} failed:`, err?.message);
+          }
         }
+
+        coastersWithSketches.push({ ...c, finalSketch });
+      }
+
+      try {
+        await sendMultiOrderEmail({ name, whatsapp, quantity, notes, coasters: coastersWithSketches });
+        console.log(`Multi-image email sent for: ${name}`);
       } catch (err) {
-        console.error("High quality sketch failed, using preview:", err?.message);
+        console.error("Multi-image email failed:", err?.message);
+      }
+
+      try {
+        const multiNotes = `${notes || ""}${notes ? " | " : ""}${coasters.length} תמונות שונות`.trim();
+        await writeToSheet({ name, whatsapp, quantity, notes: multiNotes });
+      } catch (err) {
+        console.error("writeToSheet unhandled:", err?.message);
+      }
+
+    } else {
+      // ── Single-image order (existing logic) ───────────────────────────────
+      let finalSketch = sketchPreviewBase64;
+
+      if (photoBase64 && process.env.OPENAI_API_KEY) {
+        try {
+          console.log(`Generating HQ sketch for: ${name}...`);
+          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+          const highQuality = await generateHighQualitySketch(openai, photoBase64, photoMimeType);
+          if (highQuality) { finalSketch = highQuality; console.log("HQ sketch ready."); }
+        } catch (err) {
+          console.error("HQ sketch failed, using preview:", err?.message);
+        }
+      }
+
+      try {
+        await sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64: finalSketch });
+        console.log(`Email sent for: ${name}`);
+      } catch (err) {
+        console.error("Email failed:", err?.message);
+      }
+
+      try {
+        await writeToSheet({ name, whatsapp, quantity, notes });
+      } catch (err) {
+        console.error("writeToSheet unhandled:", err?.message);
       }
     }
 
-    try {
-      await sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64: finalSketch });
-      console.log(`Email sent for order: ${name}`);
-    } catch (err) {
-      console.error("Email failed:", err?.message);
-    }
-
-    try {
-      await writeToSheet({ name, whatsapp, quantity, notes });
-    } catch (err) {
-      console.error("writeToSheet unhandled:", err?.message);
-    }
   })();
 });
 
