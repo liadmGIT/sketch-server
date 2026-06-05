@@ -171,7 +171,7 @@ async function writeToSheet({ name, whatsapp, quantity, notes }) {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-      range: "Sheet1!A:J",
+      range: "גיליון1!A:J",
       valueInputOption: "USER_ENTERED",
       resource: {
         values: [[
