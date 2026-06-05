@@ -70,7 +70,7 @@ Add a thick solid black circular outer border.
 Inside the circle, use a plain white background.
 Place the simplified subjects inside the circle from chest/shoulders upward.
 Include arms and hands if they are visible in the photo — do not cut them off.
-BACKGROUND RULES: Remove busy, cluttered backgrounds completely. If the background has meaningful elements (flowers, nature), keep only 3–6 simplified decorative shapes scattered sparsely — not a dense filled pattern. The background must have plenty of white space. Never fill the entire circle with background elements. The subject must dominate — background is secondary accent only.
+BACKGROUND RULES: Remove the background completely and replace with plain white. Do NOT invent or add decorative elements (flowers, leaves, patterns, shapes) that do not exist in the original photo. If the original photo clearly contains a simple iconic element directly around the subject (e.g. a single flower the subject is holding), you may simplify and include it — but only if it genuinely exists in the photo. When in doubt, use white background only.
 
 WHAT TO PRESERVE FROM THE PHOTO:
 Keep each subject recognizable by preserving:
