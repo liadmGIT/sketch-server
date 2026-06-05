@@ -171,20 +171,21 @@ async function writeToSheet({ name, whatsapp, quantity, notes }) {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEETS_ID,
-      range: "גיליון1!A:J",
+      range: "גיליון1!A:K",
       valueInputOption: "USER_ENTERED",
       resource: {
         values: [[
-          fmt(now),          // תאריך הזמנה
-          name,              // שם
-          whatsapp,          // וואטסאפ
-          quantity,          // כמות
-          notes || "",       // הערות
-          cost,              // עלות ייצור (₪)
-          profit,            // רווח (₪)
-          fmt(deadline),     // מסירה מקסימלית
-          "",                // שולם?
-          "ממתין",           // סטטוס
+          fmt(now),          // A - תאריך הזמנה
+          name,              // B - שם
+          whatsapp,          // C - וואטסאפ
+          quantity,          // D - כמות
+          notes || "",       // E - הערות
+          cost,              // F - עלות ייצור (₪)
+          profit,            // G - רווח (₪)
+          "ממתין",           // H - סטטוס (מתעדכן אוטומטית ע"י Apps Script)
+          "לא",              // I - שולם?
+          "לא",              // J - סופק?
+          fmt(deadline),     // K - מסירה מקסימלית
         ]],
       },
     });
