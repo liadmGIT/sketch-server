@@ -131,10 +131,10 @@ The result should look like a professional custom portrait icon, not like a dama
 // ─── helper: Google Sheets ────────────────────────────────────────────────────
 
 function parseOrder(quantityStr) {
-  if (quantityStr?.includes("זוג"))  return { qty: 2, price: 35 };
-  if (quantityStr?.includes("סט 4")) return { qty: 4, price: 60 };
   if (quantityStr?.includes("סט 6")) return { qty: 6, price: 80 };
-  return { qty: 1, price: 20 };
+  if (quantityStr?.includes("סט 4")) return { qty: 4, price: 60 };
+  if (quantityStr?.includes("זוג"))  return { qty: 2, price: 35 };
+  return { qty: 1, price: 20 }; // "1 תחתית — ₪20" + default
 }
 
 function addBusinessDays(date, days) {
@@ -225,8 +225,10 @@ async function generatePreviewSketch(openai, imageBase64, mimeType) {
 
 async function generateHighQualitySketch(openai, imageBase64, mimeType) {
   const imageBuffer = Buffer.from(imageBase64, "base64");
+  // force JPEG — client always converts via canvas; avoids gpt-image-2 rejecting HEIC/PNG
+  const safeType = "image/jpeg";
   const imageFile = await toFile(imageBuffer, "photo.jpg", {
-    type: mimeType || "image/jpeg",
+    type: safeType,
   });
 
   const result = await openai.images.edit({
@@ -250,11 +252,11 @@ function esc(str) {
     .replace(/>/g, "&gt;");
 }
 
-async function sendOrderEmail({ name, whatsapp, description, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64 }) {
+async function sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64 }) {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
-  const photoContentType = photoMimeType || "image/jpeg";
-  const photoExt = photoContentType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+  // always JPEG from client canvas — safe filename
+  const photoExt = "jpg";
 
   const attachments = [];
   if (photoBase64) {
@@ -279,10 +281,6 @@ async function sendOrderEmail({ name, whatsapp, description, quantity, notes, sk
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px; font-weight: bold;">וואטסאפ</td>
             <td style="padding: 8px;">${esc(whatsapp)}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 8px; font-weight: bold;">מה בתמונה</td>
-            <td style="padding: 8px;">${esc(description)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px; font-weight: bold;">כמות</td>
@@ -332,7 +330,7 @@ app.post("/sketch", sketchLimiter, async (req, res) => {
 // ─── /order — קבלת הזמנה + סקיצה איכותית + מייל ברקע ───────────────────────
 
 app.post("/order", orderLimiter, async (req, res) => {
-  const { name, whatsapp, description, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchPreviewBase64 } = req.body;
+  const { name, whatsapp, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchPreviewBase64 } = req.body;
 
   if (!name || !whatsapp) return res.status(400).json({ error: "Missing required fields" });
   if (!process.env.GMAIL_USER || !process.env.RESEND_API_KEY) return res.status(500).json({ error: "Email not configured" });
@@ -361,13 +359,17 @@ app.post("/order", orderLimiter, async (req, res) => {
     }
 
     try {
-      await sendOrderEmail({ name, whatsapp, description, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64: finalSketch });
+      await sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, photoBase64, photoMimeType, sketchBase64: finalSketch });
       console.log(`Email sent for order: ${name}`);
     } catch (err) {
       console.error("Email failed:", err?.message);
     }
 
-    await writeToSheet({ name, whatsapp, quantity, notes });
+    try {
+      await writeToSheet({ name, whatsapp, quantity, notes });
+    } catch (err) {
+      console.error("writeToSheet unhandled:", err?.message);
+    }
   })();
 });
 
