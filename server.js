@@ -70,7 +70,11 @@ Add a thick solid black circular outer border.
 Inside the circle, use a plain white background.
 Place the simplified subjects inside the circle from chest/shoulders upward.
 Include arms and hands if they are visible in the photo — do not cut them off.
-BACKGROUND RULES: The background inside the circle must be pure white — no exceptions. Remove grass, floors, walls, sky, trees, flowers, leaves, soil, or any environment. Do NOT add any decorative fill elements. The inside of the circle contains ONLY the subject on a white background. Nothing else.
+BACKGROUND RULES:
+- The main subject always comes first — it must dominate the composition.
+- If the background is plain, neutral, or unimportant (floor, wall, sky, grass, blurred scenery) → replace with pure white. Do not invent decorative elements.
+- If the background contains clearly visible, meaningful elements (e.g. flowers the subject is surrounded by, other people who are part of the scene, a recognizable object) → simplify and include them sparsely. Maximum 3–5 simplified shapes. Leave plenty of white space. Never let background elements compete with the main subject.
+- NEVER invent or add anything that does not exist in the original photo.
 
 WHAT TO PRESERVE FROM THE PHOTO:
 Keep each subject recognizable by preserving:
