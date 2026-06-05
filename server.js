@@ -21,6 +21,7 @@ const orderLimiter = rateLimit({
 });
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "10mb" }));
 
 // CORS — allow only the Vercel frontend
@@ -148,7 +149,10 @@ function addBusinessDays(date, days) {
 }
 
 async function writeToSheet({ name, whatsapp, quantity, notes }) {
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT || !process.env.GOOGLE_SHEETS_ID) return;
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT || !process.env.GOOGLE_SHEETS_ID) {
+    console.warn("Sheet skipped: missing GOOGLE_SERVICE_ACCOUNT or GOOGLE_SHEETS_ID");
+    return;
+  }
   try {
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
     const auth = new google.auth.GoogleAuth({
