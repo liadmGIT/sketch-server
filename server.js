@@ -330,21 +330,14 @@ async function sendMultiOrderEmail({ name, whatsapp, quantity, notes, coasters }
     }
   });
 
+  // Gmail blocks data: URI images — show text summary, full images are in attachments
   const rowsHtml = coasters.map((c, i) => `
     <tr style="border-bottom: 1px solid #eee;">
-      <td style="padding: 10px; font-weight: bold; color: #7A5A30; width: 90px;">עיצוב ${c.index || i + 1}<br/><span style="font-size:0.85em; color:#C4965A;">×${c.count || 1} תחתיות</span></td>
-      <td style="padding: 10px; text-align: center;">
-        ${c.photoBase64
-          ? `<img src="data:image/jpeg;base64,${c.photoBase64}"
-               style="width:72px;height:72px;object-fit:cover;border-radius:6px;display:block;margin:auto;" />`
-          : '<span style="color:#999">—</span>'}
-      </td>
-      <td style="padding: 10px; text-align: center;">
-        ${c.finalSketch
-          ? `<img src="data:image/png;base64,${c.finalSketch}"
-               style="width:72px;height:72px;object-fit:cover;border-radius:6px;display:block;margin:auto;" />`
-          : `<span style="color:${c.status === "error" ? "#b03a2e" : "#999"}; font-size:0.85em;">
-               ${c.status === "error" ? "שגיאה — לייצר ידנית" : "לא נוצרה"}</span>`}
+      <td style="padding: 10px; font-weight: bold; color: #7A5A30; width: 36px;">${c.index || i + 1}</td>
+      <td style="padding: 10px; color: #C4965A; font-weight: 700; width: 80px;">×${c.count || 1} תחתיות</td>
+      <td style="padding: 10px; font-size: 0.82em; color: #666;">
+        ${c.photoBase64 ? `📷 coaster-${i + 1}-photo.jpg` : "⚠️ אין תמונה"}<br/>
+        ${c.finalSketch ? `🎨 coaster-${i + 1}-sketch.png` : `<span style="color:#b03a2e;">⚠️ סקיצה לא נוצרה — לייצר ידנית</span>`}
       </td>
     </tr>
   `).join("");
@@ -375,20 +368,20 @@ async function sendMultiOrderEmail({ name, whatsapp, quantity, notes, coasters }
           </tr>
         </table>
 
-        <h3 style="margin-bottom: 10px; color: #1a1a1a;">תחתיות:</h3>
+        <h3 style="margin-bottom: 10px; color: #1a1a1a;">עיצובים:</h3>
         <table style="border-collapse: collapse; width: 100%;">
           <thead>
             <tr style="background: #f5f0e8; font-size: 0.82em; color: #7A5A30;">
               <th style="padding: 8px; text-align: right;">#</th>
-              <th style="padding: 8px;">תמונה מקורית</th>
-              <th style="padding: 8px;">סקיצה</th>
+              <th style="padding: 8px; text-align: right;">כמות</th>
+              <th style="padding: 8px; text-align: right;">קבצים מצורפים</th>
             </tr>
           </thead>
           <tbody>${rowsHtml}</tbody>
         </table>
 
         <p style="margin-top: 16px; color: #888; font-size: 0.85em;">
-          📎 כל התמונות והסקיצות מצורפות כקבצים נפרדים.
+          📎 ${coasters.length * 2} קבצים מצורפים — תמונות וסקיצות לפי סדר.
         </p>
       </div>
     `,
