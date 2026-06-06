@@ -14,7 +14,7 @@ const sketchLimiter = rateLimit({
 
 const orderLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 3,
+  max: 10, // raised from 3 — allows retries after silent email failure
   message: { error: "יותר מדי הזמנות — נסה שוב בעוד שעה" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -298,7 +298,7 @@ async function sendOrderEmail({ name, whatsapp, quantity, notes, sketch_status, 
           </tr>
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px; font-weight: bold;">הערות</td>
-            <td style="padding: 8px;">${esc(notes)}</td>
+            <td style="padding: 8px;">${esc(notes) || "—"}</td>
           </tr>
           <tr>
             <td style="padding: 8px; font-weight: bold;">סטטוס סקיצה</td>
@@ -381,7 +381,7 @@ async function sendMultiOrderEmail({ name, whatsapp, quantity, notes, coasters }
         </table>
 
         <p style="margin-top: 16px; color: #888; font-size: 0.85em;">
-          📎 ${coasters.length * 2} קבצים מצורפים — תמונות וסקיצות לפי סדר.
+          📎 ${attachments.length} קבצים מצורפים — תמונות וסקיצות לפי סדר.
         </p>
       </div>
     `,
