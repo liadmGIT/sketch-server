@@ -6,16 +6,48 @@ const T = "all";
 const USER_AGENT = "node:reddit-scraper:1.0 (analysis script)";
 const OUT_FILE = `reddit-${SUBREDDIT}-top.json`;
 
+const CLIENT_ID = process.env.REDDIT_CLIENT_ID;
+const CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET;
+
 if (!SUBREDDIT) {
   console.error("Usage: node scrape-reddit.js <subreddit>");
   process.exit(1);
 }
 
-async function fetchTopPosts(subreddit) {
-  const url = `https://www.reddit.com/r/${subreddit}/top.json?t=${T}&limit=${LIMIT}`;
-  const response = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT },
+async function getAccessToken() {
+  if (!CLIENT_ID || !CLIENT_SECRET) return null;
+
+  const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+  const response = await fetch("https://www.reddit.com/api/v1/access_token", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "User-Agent": USER_AGENT,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
   });
+
+  if (!response.ok) {
+    throw new Error(`Auth failed: HTTP ${response.status} ${response.statusText}`);
+  }
+
+  const json = await response.json();
+  return json.access_token;
+}
+
+async function fetchTopPosts(subreddit) {
+  const token = await getAccessToken();
+
+  const baseUrl = token ? "https://oauth.reddit.com" : "https://www.reddit.com";
+  const url = `${baseUrl}/r/${subreddit}/top.json?t=${T}&limit=${LIMIT}`;
+
+  const headers = { "User-Agent": USER_AGENT };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, { headers });
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status} ${response.statusText} — r/${subreddit} may not exist or is private`);
