@@ -20,13 +20,34 @@ const orderLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// מונה נפרד לחנות — שלא יחלוק מכסה עם הזמנות תחתיות
+const storeOrderLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { error: "יותר מדי הזמנות — נסה שוב בעוד שעה" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const app = express();
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "30mb" })); // raised for multi-image orders (up to 6 photos + sketches)
 
-// CORS — allow only the Vercel frontend
+// CORS — allow only our Vercel frontends (coaster-web + store-web)
+const ALLOWED_ORIGINS = [
+  "https://coaster-web-eta.vercel.app",
+];
+// store-web deployments (production + previews) share the project prefix
+const STORE_ORIGIN_RE = /^https:\/\/store-web[a-z0-9-]*\.vercel\.app$/;
+
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://coaster-web-eta.vercel.app");
+  const origin = req.headers.origin;
+  if (origin && (ALLOWED_ORIGINS.includes(origin) || STORE_ORIGIN_RE.test(origin))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGINS[0]);
+  }
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -193,6 +214,128 @@ async function writeToSheet({ name, whatsapp, quantity, notes }) {
   } catch (err) {
     console.error("Sheet write failed:", err?.message);
   }
+}
+
+// ─── helper: Google Sheets — טאב "חנות" (store-web) ──────────────────────────
+
+const STORE_SHEET_NAME = "חנות";
+const STORE_SHEET_HEADER = [
+  "תאריך", "שם", "וואטסאפ", "מוצר", "צבע", "כמות",
+  "מחיר (₪)", "עלות (₪)", "רווח (₪)", "הערות",
+  "שולם?", "סופק?", "מסירה מקסימלית", "סטטוס",
+];
+
+async function writeStoreOrderToSheet({ name, whatsapp, productName, color, quantity, totalPrice, totalCost, notes }) {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT || !process.env.GOOGLE_SHEETS_ID) {
+    console.warn("Store sheet skipped: missing GOOGLE_SERVICE_ACCOUNT or GOOGLE_SHEETS_ID");
+    return;
+  }
+  try {
+    const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+    const sheets = google.sheets({ version: "v4", auth });
+    const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+
+    const now = new Date();
+    const fmt = (d) => d.toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" });
+    const deadline = addBusinessDays(now, 2);
+
+    const row = [
+      fmt(now),                  // A - תאריך
+      name,                      // B - שם
+      whatsapp,                  // C - וואטסאפ
+      productName,               // D - מוצר
+      color || "—",              // E - צבע
+      quantity,                  // F - כמות
+      totalPrice,                // G - מחיר (₪)
+      totalCost,                 // H - עלות (₪)
+      totalPrice - totalCost,    // I - רווח (₪)
+      notes || "",               // J - הערות
+      "לא",                      // K - שולם?
+      "לא",                      // L - סופק?
+      fmt(deadline),             // M - מסירה מקסימלית
+      "ממתין",                   // N - סטטוס (מתעדכן ע"י Apps Script)
+    ];
+
+    const append = () => sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${STORE_SHEET_NAME}!A:N`,
+      valueInputOption: "USER_ENTERED",
+      resource: { values: [row] },
+    });
+
+    try {
+      await append();
+    } catch (err) {
+      // הטאב עדיין לא קיים — יוצרים אותו עם שורת כותרת ומנסים שוב
+      if (!String(err?.message).includes("Unable to parse range")) throw err;
+      console.log(`Creating sheet tab "${STORE_SHEET_NAME}"...`);
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        resource: { requests: [{ addSheet: { properties: { title: STORE_SHEET_NAME, rightToLeft: true } } }] },
+      });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${STORE_SHEET_NAME}!A:N`,
+        valueInputOption: "USER_ENTERED",
+        resource: { values: [STORE_SHEET_HEADER] },
+      });
+      await append();
+    }
+    console.log(`Store sheet updated for: ${name}`);
+  } catch (err) {
+    console.error("Store sheet write failed:", err?.message);
+  }
+}
+
+// ─── helper: store order email ───────────────────────────────────────────────
+
+async function sendStoreOrderEmail({ name, whatsapp, notes, productName, color, quantity, unitPrice, totalPrice, logoBase64, logoMimeType, logoInstructions }) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const attachments = [];
+  if (logoBase64) {
+    const ext = logoMimeType === "image/png" ? "png" : "jpg";
+    attachments.push({ filename: `logo.${ext}`, content: logoBase64 });
+  }
+
+  const rows = [
+    ["שם", esc(name)],
+    ["וואטסאפ", whatsappLink(whatsapp)],
+    ["מוצר", esc(productName)],
+    ["צבע", esc(color)],
+    ["כמות", esc(quantity)],
+    ["מחיר ליחידה", `₪${esc(unitPrice)}`],
+    ["סה\"כ", `<strong>₪${esc(totalPrice)}</strong>`],
+    ["הוראות ללוגו", esc(logoInstructions) || "—"],
+    ["הערות", esc(notes) || "—"],
+  ].map(([k, v]) => `
+    <tr style="border-bottom: 1px solid #eee;">
+      <td style="padding: 8px; font-weight: bold; width: 130px;">${k}</td>
+      <td style="padding: 8px;">${v}</td>
+    </tr>`).join("");
+
+  // Gmail חוסם תמונות data: URI — הלוגו מצורף כקובץ בלבד
+  // resend.emails.send לא זורק שגיאה — מחזיר { error }, חובה לבדוק ידנית
+  const { error } = await resend.emails.send({
+    from: "l3d prints <onboarding@resend.dev>",
+    to: process.env.GMAIL_USER,
+    subject: `🛒 הזמנה מהחנות — ${esc(name)} | ${esc(productName)} ×${esc(quantity)}`,
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 500px;">
+        <h2 style="color: #1a1a1a;">הזמנה חדשה מהחנות 🛒</h2>
+        <table style="border-collapse: collapse; width: 100%;">${rows}</table>
+        <p style="margin-top: 16px; color: #666; font-size: 0.9em;">
+          ${logoBase64 ? "📎 לוגו/תמונה מצורפים." : "ℹ️ ללא לוגו מצורף."}
+        </p>
+      </div>
+    `,
+    attachments,
+  });
+  if (error) throw new Error(error.message || "Resend send failed");
 }
 
 // ─── helper: fast preview via Responses API (gpt-image-1, quality low) ──────
@@ -502,6 +645,52 @@ app.post("/order", orderLimiter, async (req, res) => {
       }
     }
 
+  })();
+});
+
+// ─── /store-order — הזמנה מהחנות (store-web) ─────────────────────────────────
+
+app.post("/store-order", storeOrderLimiter, async (req, res) => {
+  const {
+    name, whatsapp, notes,
+    productId, productName, color, quantity,
+    unitPrice, totalPrice, costPerUnit,
+    logoBase64, logoMimeType, logoInstructions,
+  } = req.body;
+
+  if (!name || !whatsapp) return res.status(400).json({ error: "Missing required fields" });
+  if (!productName) return res.status(400).json({ error: "Missing product" });
+  if (!process.env.GMAIL_USER || !process.env.RESEND_API_KEY) return res.status(500).json({ error: "Email not configured" });
+
+  const qty = Math.max(1, Math.min(50, parseInt(quantity, 10) || 1));
+  const total = Number(totalPrice) || 0;
+  const totalCost = (Number(costPerUnit) || 0) * qty;
+
+  console.log(`Store order received: ${name} | ${productName} (${productId}) ×${qty} | ₪${total}`);
+
+  // מחזיר ללקוח מיידית — עבודה ברקע
+  res.status(200).json({ success: true });
+
+  (async () => {
+    try {
+      await sendStoreOrderEmail({
+        name, whatsapp, notes, productName, color,
+        quantity: qty, unitPrice, totalPrice: total,
+        logoBase64, logoMimeType, logoInstructions,
+      });
+      console.log(`Store email sent for: ${name}`);
+    } catch (err) {
+      console.error("Store email failed:", err?.message);
+    }
+
+    try {
+      await writeStoreOrderToSheet({
+        name, whatsapp, productName, color,
+        quantity: qty, totalPrice: total, totalCost, notes,
+      });
+    } catch (err) {
+      console.error("writeStoreOrderToSheet unhandled:", err?.message);
+    }
   })();
 });
 
